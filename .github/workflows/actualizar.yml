@@ -1,7 +1,7 @@
 name: Actualizar pronóstico Dolores
 on:
   schedule:
-    - cron: "50 9 * * *"   # 06:50 hora de Uruguay
+    - cron: "20 8 * * *"   # 05:20 hora de Uruguay (GitHub a veces demora; queda margen antes de las 7:45)
   workflow_dispatch: {}
 permissions:
   contents: write
