@@ -24,11 +24,11 @@ const D={gen:new Date().toISOString(),t0,det:{},err:[]};
 
 const DET={gfs:'gfs_seamless',ecmwf:'ecmwf_ifs025',icon:'icon_seamless',gem:'gem_seamless',aifs:'ecmwf_aifs025_single',aigfs:'ncep_aigfs025',ukmo:'ukmo_seamless',arpege:'meteofrance_seamless',jma:'jma_seamless',cma:'cma_grapes_global'};
 for(const [id,m] of Object.entries(DET)){try{
- const j=await J(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&timezone=${TZ}&forecast_days=16&models=${m}&daily=precipitation_sum,temperature_2m_max,temperature_2m_min,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant&hourly=precipitation,temperature_2m,wind_speed_10m`);
+ const j=await J(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&timezone=${TZ}&forecast_days=16&past_days=2&models=${m}&daily=precipitation_sum,temperature_2m_max,temperature_2m_min,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,sunshine_duration,cloud_cover_mean&hourly=precipitation,temperature_2m,wind_speed_10m`);
  const d=j.daily,h=j.hourly;let n=d.time.length;while(n>0&&!isNum(d.precipitation_sum[n-1]))n--;
  const H={p:Array(NH).fill(null),t:Array(NH).fill(null),w:Array(NH).fill(null)};
  h.time.forEach((t,i)=>{const k=hIdx(t);if(k>=0&&k<NH){H.p[k]=r1((h.precipitation||[])[i]);H.t[k]=r1((h.temperature_2m||[])[i]);H.w[k]=r0((h.wind_speed_10m||[])[i])}});
- D.det[id]={d:{time:d.time.slice(0,n),p:d.precipitation_sum.slice(0,n).map(r1),tmax:d.temperature_2m_max.slice(0,n).map(r1),tmin:d.temperature_2m_min.slice(0,n).map(r1),w:d.wind_speed_10m_max.slice(0,n).map(r0),g:(d.wind_gusts_10m_max||[]).slice(0,n).map(r0),dir:(d.wind_direction_10m_dominant||[]).slice(0,n).map(r0)},h:H};
+ D.det[id]={d:{time:d.time.slice(0,n),p:d.precipitation_sum.slice(0,n).map(r1),tmax:d.temperature_2m_max.slice(0,n).map(r1),tmin:d.temperature_2m_min.slice(0,n).map(r1),w:d.wind_speed_10m_max.slice(0,n).map(r0),g:(d.wind_gusts_10m_max||[]).slice(0,n).map(r0),dir:(d.wind_direction_10m_dominant||[]).slice(0,n).map(r0),sun:(d.sunshine_duration||[]).slice(0,n).map(v=>isNum(v)?r1(v/3600):null),cc:(d.cloud_cover_mean||[]).slice(0,n).map(r0)},h:H};
 }catch(e){D.err.push(id+':'+e.message)}}
 
 try{const j=await J(`https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=-33.53&lon=-58.22`);
@@ -36,9 +36,9 @@ try{const j=await J(`https://api.met.no/weatherapi/locationforecast/2.0/compact?
  j.properties.timeseries.forEach(e=>{const lt=new Date(new Date(e.time).getTime()+OFF_H*3600e3).toISOString().slice(0,13)+':00';const day=lt.slice(0,10);const det=e.data.instant.details;
   const p1=e.data.next_1_hours?.details?.precipitation_amount,p6=e.data.next_6_hours?.details?.precipitation_amount;const p=isNum(p1)?p1:(isNum(p6)?p6:null);
   const k=hIdx(lt);if(k>=0&&k<NH){H.p[k]=r1(p);H.t[k]=r1(det.air_temperature);H.w[k]=r0(det.wind_speed*3.6)}
-  const X=days[day]||(days[day]={p:0,t:[],w:[],dir:[]});if(isNum(p))X.p+=p;X.t.push(det.air_temperature);X.w.push(det.wind_speed*3.6);X.dir.push(det.wind_from_direction)});
+  const X=days[day]||(days[day]={p:0,t:[],w:[],dir:[],cc:[]});if(isNum(p))X.p+=p;X.t.push(det.air_temperature);X.w.push(det.wind_speed*3.6);X.dir.push(det.wind_from_direction);if(isNum(det.cloud_area_fraction))X.cc.push(det.cloud_area_fraction)});
  const keys=Object.keys(days).sort().filter(k=>days[k].t.length>=3);
- D.det.yr={d:{time:keys,p:keys.map(k=>r1(days[k].p)),tmax:keys.map(k=>r1(Math.max(...days[k].t))),tmin:keys.map(k=>r1(Math.min(...days[k].t))),w:keys.map(k=>r0(Math.max(...days[k].w))),g:keys.map(()=>null),dir:keys.map(k=>r0(vecMean(days[k].dir)))},h:H};
+ D.det.yr={d:{time:keys,p:keys.map(k=>r1(days[k].p)),tmax:keys.map(k=>r1(Math.max(...days[k].t))),tmin:keys.map(k=>r1(Math.min(...days[k].t))),w:keys.map(k=>r0(Math.max(...days[k].w))),g:keys.map(()=>null),dir:keys.map(k=>r0(vecMean(days[k].dir))),sun:keys.map(()=>null),cc:keys.map(k=>days[k].cc.length?r0(mean(days[k].cc)):null)},h:H};
 }catch(e){D.err.push('yr:'+e.message)}
 
 const ENS={gfs:'gfs_seamless',ecmwf:'ecmwf_ifs025',icon:'icon_seamless',gem:'gem_global',aifs:'ecmwf_aifs025',aigfs:'ncep_aigefs025',ukmo:'ukmo_global_ensemble_20km'};
