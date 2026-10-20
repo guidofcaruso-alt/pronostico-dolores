@@ -1,0 +1,24 @@
+name: Actualizar pronóstico Dolores
+on:
+  schedule:
+    - cron: "50 9 * * *"   # 06:50 hora de Uruguay
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Descargar pronósticos
+        run: node scripts/descargar.mjs
+      - name: Guardar data.json
+        run: |
+          git config user.name "pronostico-bot"
+          git config user.email "pronostico-bot@users.noreply.github.com"
+          git add data.json
+          git diff --cached --quiet || git commit -m "Pronóstico $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push
