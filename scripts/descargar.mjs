@@ -22,13 +22,13 @@ const t0ms=new Date(t0+':00Z').getTime();const NH=79;
 const hIdx=t=>Math.round((new Date(t+':00Z').getTime()-t0ms)/3600e3);
 const D={gen:new Date().toISOString(),t0,det:{},err:[]};
 
-const DET={gfs:'gfs_seamless',ecmwf:'ecmwf_ifs025',icon:'icon_seamless',gem:'gem_seamless'};
+const DET={gfs:'gfs_seamless',ecmwf:'ecmwf_ifs025',icon:'icon_seamless',gem:'gem_seamless',aifs:'ecmwf_aifs025_single',aigfs:'ncep_aigfs025',ukmo:'ukmo_seamless',arpege:'meteofrance_seamless',jma:'jma_seamless',cma:'cma_grapes_global'};
 for(const [id,m] of Object.entries(DET)){try{
  const j=await J(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&timezone=${TZ}&forecast_days=16&models=${m}&daily=precipitation_sum,temperature_2m_max,temperature_2m_min,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant&hourly=precipitation,temperature_2m,wind_speed_10m`);
  const d=j.daily,h=j.hourly;let n=d.time.length;while(n>0&&!isNum(d.precipitation_sum[n-1]))n--;
  const H={p:Array(NH).fill(null),t:Array(NH).fill(null),w:Array(NH).fill(null)};
- h.time.forEach((t,i)=>{const k=hIdx(t);if(k>=0&&k<NH){H.p[k]=r1(h.precipitation[i]);H.t[k]=r1(h.temperature_2m[i]);H.w[k]=r0(h.wind_speed_10m[i])}});
- D.det[id]={d:{time:d.time.slice(0,n),p:d.precipitation_sum.slice(0,n).map(r1),tmax:d.temperature_2m_max.slice(0,n).map(r1),tmin:d.temperature_2m_min.slice(0,n).map(r1),w:d.wind_speed_10m_max.slice(0,n).map(r0),g:d.wind_gusts_10m_max.slice(0,n).map(r0),dir:d.wind_direction_10m_dominant.slice(0,n).map(r0)},h:H};
+ h.time.forEach((t,i)=>{const k=hIdx(t);if(k>=0&&k<NH){H.p[k]=r1((h.precipitation||[])[i]);H.t[k]=r1((h.temperature_2m||[])[i]);H.w[k]=r0((h.wind_speed_10m||[])[i])}});
+ D.det[id]={d:{time:d.time.slice(0,n),p:d.precipitation_sum.slice(0,n).map(r1),tmax:d.temperature_2m_max.slice(0,n).map(r1),tmin:d.temperature_2m_min.slice(0,n).map(r1),w:d.wind_speed_10m_max.slice(0,n).map(r0),g:(d.wind_gusts_10m_max||[]).slice(0,n).map(r0),dir:(d.wind_direction_10m_dominant||[]).slice(0,n).map(r0)},h:H};
 }catch(e){D.err.push(id+':'+e.message)}}
 
 try{const j=await J(`https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=-33.53&lon=-58.22`);
@@ -41,7 +41,7 @@ try{const j=await J(`https://api.met.no/weatherapi/locationforecast/2.0/compact?
  D.det.yr={d:{time:keys,p:keys.map(k=>r1(days[k].p)),tmax:keys.map(k=>r1(Math.max(...days[k].t))),tmin:keys.map(k=>r1(Math.min(...days[k].t))),w:keys.map(k=>r0(Math.max(...days[k].w))),g:keys.map(()=>null),dir:keys.map(k=>r0(vecMean(days[k].dir)))},h:H};
 }catch(e){D.err.push('yr:'+e.message)}
 
-const ENS={gfs:'gfs_seamless',ecmwf:'ecmwf_ifs025',icon:'icon_seamless',gem:'gem_global'};
+const ENS={gfs:'gfs_seamless',ecmwf:'ecmwf_ifs025',icon:'icon_seamless',gem:'gem_global',aifs:'ecmwf_aifs025',aigfs:'ncep_aigefs025',ukmo:'ukmo_global_ensemble_20km'};
 const days35=[];for(let i=0;i<35;i++)days35.push(addDays(D0,i));
 const E={};
 for(const [id,m] of Object.entries(ENS)){try{const j=await J(`https://ensemble-api.open-meteo.com/v1/ensemble?latitude=${LAT}&longitude=${LON}&timezone=${TZ}&forecast_days=35&models=${m}&daily=precipitation_sum,temperature_2m_max,temperature_2m_min,wind_speed_10m_max`);
